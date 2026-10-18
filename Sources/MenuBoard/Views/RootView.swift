@@ -30,13 +30,14 @@ struct RootView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Divider()
-            FooterView()
+            FooterView(menuBar: state.menuBar)
         }
         .frame(width: Self.size.width, height: Self.size.height)
     }
 }
 
 private struct FooterView: View {
+    @ObservedObject var menuBar: MenuBarSettings
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
 
     var body: some View {
@@ -46,6 +47,13 @@ private struct FooterView: View {
                 .foregroundStyle(.secondary)
             Spacer()
             Menu {
+                Section("Show in Menu Bar") {
+                    Toggle("Icon", isOn: $menuBar.showIcon)
+                    ForEach(MenuBarMetric.allCases) { metric in
+                        Toggle(metric.title, isOn: menuBar.binding(for: metric))
+                    }
+                }
+                Divider()
                 Toggle("Launch at Login", isOn: $launchAtLogin)
                 Divider()
                 Button("Quit MenuBoard") { NSApp.terminate(nil) }

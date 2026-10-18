@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 @main
@@ -20,13 +21,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private let dragMonitor = DragMonitor()
     private var dropPanel: DropPanelController?
     private var outsideClickMonitor: Any?
+    private var cancellables = Set<AnyCancellable>()
+    private static let icon = NSImage(systemSymbolName: "gauge.with.dots.needle.50percent", accessibilityDescription: "MenuBoard")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem = item
         guard let button = item.button else { return }
 
-        button.image = NSImage(systemSymbolName: "gauge.with.dots.needle.50percent", accessibilityDescription: "MenuBoard")
+        button.image = Self.icon
         button.target = self
         button.action = #selector(togglePopover)
 
@@ -72,6 +75,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             dropPanel.hide(after: 0.3)
         }
         dragMonitor.start()
+
+        state.menuBar.objectWillChange
+            .merge(with: state.system.objectWillChange)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.updateStatusItem() }
+            .store(in: &cancellables)
+        updateStatusItem()
+    }
+
+    private func updateStatusItem() {
+        guard let button = statusItem?.button else { return }
+        let settings = state.menuBar
+        state.system.backgroundSampling = settings.hasMetrics
+        let title = settings.hasMetrics ? StatusItemRenderer.title(stats: state.system, settings: settings) : NSAttributedString()
+        let showIcon = settings.showIcon || title.length == 0
+        button.attributedTitle = title
+        button.image = showIcon ? Self.icon : nil
+        button.imagePosition = title.length == 0 ? .imageOnly : (showIcon ? .imageLeading : .noImage)
     }
 
     private func statusItemScreenRect() -> NSRect? {
@@ -124,6 +145,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         guard let statusItem else { return }
         let menu = NSMenu()
 
+        let display = NSMenuItem(title: "Show in Menu Bar", action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+        let iconItem = NSMenuItem(title: "Icon", action: #selector(toggleIcon), keyEquivalent: "")
+        iconItem.target = self
+        iconItem.state = state.menuBar.showIcon ? .on : .off
+        submenu.addItem(iconItem)
+        submenu.addItem(.separator())
+        for metric in MenuBarMetric.allCases {
+            let item = NSMenuItem(title: metric.title, action: #selector(toggleMetric(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = metric.rawValue
+            item.state = state.menuBar.isEnabled(metric) ? .on : .off
+            submenu.addItem(item)
+        }
+        display.submenu = submenu
+        menu.addItem(display)
+        menu.addItem(.separator())
+
         let login = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
         login.target = self
         login.state = LaunchAtLogin.isEnabled ? .on : .off
@@ -137,6 +176,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
+    }
+
+    @objc private func toggleIcon() {
+        state.menuBar.showIcon.toggle()
+    }
+
+    @objc private func toggleMetric(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let metric = MenuBarMetric(rawValue: raw) else { return }
+        state.menuBar.toggle(metric)
     }
 
     @objc private func toggleLaunchAtLogin() {

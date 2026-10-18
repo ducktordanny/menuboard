@@ -62,19 +62,38 @@ final class SystemStats: ObservableObject {
     let osVersion = ProcessInfo.processInfo.operatingSystemVersionString
     let hostName = Host.current().localizedName ?? ""
 
+    /// Keeps sampling (slowly) while the popover is closed so the menu bar readout stays current.
+    var backgroundSampling = false {
+        didSet { reschedule() }
+    }
+
     private var timer: Timer?
+    private var currentInterval: TimeInterval?
+    private var isForeground = false
     private var previousTicks: [[UInt32]] = []
 
     func start() {
-        guard timer == nil else { return }
-        previousTicks = Self.cpuTicks()
-        tick()
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.tick() }
+        isForeground = true
+        reschedule()
     }
 
     func stop() {
+        isForeground = false
+        reschedule()
+    }
+
+    private func reschedule() {
+        let interval: TimeInterval? = isForeground ? 1 : (backgroundSampling ? 2 : nil)
+        guard interval != currentInterval else { return }
         timer?.invalidate()
         timer = nil
+        currentInterval = interval
+        guard let interval else { return }
+        if previousTicks.isEmpty { previousTicks = Self.cpuTicks() }
+        tick()
+        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in self?.tick() }
+        timer.tolerance = interval * 0.2
+        self.timer = timer
     }
 
     private func tick() {

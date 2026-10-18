@@ -8,7 +8,8 @@ A macOS menu bar utility (Swift, AppKit + SwiftUI, no dependencies).
 - **Shelf** – temporary holder for files, links and web images. Start dragging anything and a drop zone slides
   out under the menu bar icon; you can also drop on the icon itself or anywhere in the popover. Drag items back
   out one by one or all at once.
-
+- **Menu bar readout** – optionally show CPU %, memory used, memory %, battery or free disk in the menu bar,
+  next to or instead of the icon (gear menu or right-click the icon → Show in Menu Bar).
 - **Clips** – clipboard history (text, files, images) with the source app, search, click-to-copy and a record toggle.
   Entries marked concealed/transient by password managers are never recorded. Up to 200 entries, stored in
   `~/Library/Application Support/MenuBoard/Clipboard/`.

@@ -27,6 +27,7 @@ final class AppState: ObservableObject {
     let audio = AudioMixer()
     let shelf = ShelfStore()
     let clipboard = ClipboardStore()
+    let menuBar = MenuBarSettings()
 
     private var isVisible = false
 
