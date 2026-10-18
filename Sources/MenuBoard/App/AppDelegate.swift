@@ -153,11 +153,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         guard let popover, popover.isShown else { return }
         // Clicks inside the popover must never dismiss it, whichever path reported them.
         if reason != "escape", isMouseInsidePopover() {
-            NSLog("MenuBoard: ignored close (%@) with mouse inside popover", reason)
             if !NSApp.isActive { NSApp.activate(ignoringOtherApps: true) }
             return
         }
-        NSLog("MenuBoard: closing popover (%@)", reason)
         popover.performClose(nil)
     }
 

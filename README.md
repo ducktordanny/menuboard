@@ -29,6 +29,25 @@ A macOS menu bar utility (Swift, AppKit + SwiftUI, no dependencies).
 - The drop zone appears for drags that carry a URL, file, image or file promise; plain text drags are ignored.
   Detection relies on a global mouse monitor plus the drag pasteboard's change count (no Accessibility permission needed).
 
+## Permissions & privacy
+
+MenuBoard asks for permissions only when you use the feature that needs them:
+
+| Feature | Permission | Why |
+| --- | --- | --- |
+| Per-app volume | System Audio Recording | Core Audio process taps capture the app's output to replay it at a new gain. Nothing is stored. |
+| Hyper key | Accessibility | A CGEvent tap must see keyboard events to add modifier flags. It never logs or sends keystrokes. |
+| Everything else | none | Key remaps go through `hidutil`; the drop zone uses a mouse-only event monitor. |
+
+Data stays local, unencrypted, under `~/Library/Application Support/MenuBoard/`: clipboard history (text, file paths,
+PNG images), shelf downloads and per-app volume settings in UserDefaults. Clipboard recording can be paused in the
+Clips tab. Network access is limited to the shelf: a HEAD request and download for dropped links, and `/favicon.ico`
+for link previews.
+
+Two private APIs are used, which is why MenuBoard is not sandboxed and not suitable for the App Store:
+`responsibility_get_pid_responsible_for_pid` (to group helper processes under their app, like Activity Monitor) and
+the TCC `TCCAccessRequest` SPI (to prompt for audio capture up front). Both fail soft if unavailable.
+
 ## Build & run
 
 ```sh
@@ -66,11 +85,14 @@ MIT, see `LICENSE`.
 
 ```
 Sources/MenuBoard/
-  App/        NSApplication entry, status item, popover, drop overlay on the status button
+  App/        NSApplication entry, status item + readout, popover, drop handling
   System/     CPU / memory / disk / battery sampling
   Processes/  per-app memory footprint (proc_pid_rusage, grouped by responsible pid)
   Audio/      Core Audio helpers, process taps, mixer state
-  Shelf/      shelf model + persistence
+  Shelf/      shelf model, drop import, drag detection, floating drop zone
+  Clipboard/  clipboard history store
+  Keyboard/   hidutil remaps, event-tap hyper key
+  Settings/   menu bar readout settings
   Views/      SwiftUI tabs
 Resources/Info.plist
 scripts/      build-app.sh, run.sh
