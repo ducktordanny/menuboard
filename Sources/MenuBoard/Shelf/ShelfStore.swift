@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import QuickLookThumbnailing
 import UniformTypeIdentifiers
 
 struct ShelfItem: Identifiable, Hashable, Codable {
@@ -60,6 +61,9 @@ final class ShelfStore: ObservableObject {
 
     private var iconCache: [URL: NSImage] = [:]
     private var detailCache: [URL: String] = [:]
+    private var previewCache: [URL: NSImage] = [:]
+    private var pendingPreviews: Set<URL> = []
+    private var failedPreviews: Set<URL> = []
     private let promiseQueue = OperationQueue()
     private let session = URLSession(configuration: .ephemeral)
 
@@ -214,6 +218,8 @@ final class ShelfStore: ObservableObject {
         deleteManagedFile(item)
         iconCache[item.url] = nil
         detailCache[item.url] = nil
+        previewCache[item.url] = nil
+        failedPreviews.remove(item.url)
     }
 
     func clear() {
@@ -222,6 +228,8 @@ final class ShelfStore: ObservableObject {
         removed.forEach(deleteManagedFile)
         iconCache.removeAll()
         detailCache.removeAll()
+        previewCache.removeAll()
+        failedPreviews.removeAll()
     }
 
     func open(_ item: ShelfItem) {
@@ -244,6 +252,56 @@ final class ShelfStore: ObservableObject {
         }
         iconCache[item.url] = icon
         return icon
+    }
+
+    /// QuickLook thumbnail for files, favicon for links. Generated lazily; nil until ready or when unavailable.
+    func preview(for item: ShelfItem) -> NSImage? {
+        if let cached = previewCache[item.url] { return cached }
+        guard !item.isLoading, !pendingPreviews.contains(item.url), !failedPreviews.contains(item.url) else { return nil }
+        pendingPreviews.insert(item.url)
+        if item.isFile {
+            generateThumbnail(for: item.url)
+        } else {
+            fetchFavicon(for: item.url)
+        }
+        return nil
+    }
+
+    private func generateThumbnail(for url: URL) {
+        let scale = NSScreen.main?.backingScaleFactor ?? 2
+        let request = QLThumbnailGenerator.Request(fileAt: url, size: CGSize(width: 96, height: 96), scale: scale, representationTypes: .thumbnail)
+        QLThumbnailGenerator.shared.generateBestRepresentation(for: request) { [weak self] representation, _ in
+            DispatchQueue.main.async { self?.finishPreview(representation?.nsImage, for: url) }
+        }
+    }
+
+    private func fetchFavicon(for url: URL) {
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false), components.host != nil else {
+            finishPreview(nil, for: url)
+            return
+        }
+        components.path = "/favicon.ico"
+        components.query = nil
+        components.fragment = nil
+        guard let faviconURL = components.url else {
+            finishPreview(nil, for: url)
+            return
+        }
+        session.dataTask(with: faviconURL) { [weak self] data, response, _ in
+            let ok = (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? false
+            let image = ok ? data.flatMap { NSImage(data: $0) } : nil
+            DispatchQueue.main.async { self?.finishPreview(image, for: url) }
+        }.resume()
+    }
+
+    private func finishPreview(_ image: NSImage?, for url: URL) {
+        pendingPreviews.remove(url)
+        objectWillChange.send()
+        if let image {
+            previewCache[url] = image
+        } else {
+            failedPreviews.insert(url)
+        }
     }
 
     func detail(for item: ShelfItem) -> String {

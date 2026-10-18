@@ -58,11 +58,9 @@ private struct ShelfRow: View {
     let store: ShelfStore
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(nsImage: store.icon(for: item))
-                .resizable()
-                .frame(width: 28, height: 28)
-            VStack(alignment: .leading, spacing: 1) {
+        HStack(spacing: 10) {
+            ShelfThumbnail(item: item, store: store)
+            VStack(alignment: .leading, spacing: 2) {
                 Text(item.title).font(.callout).lineLimit(1)
                 Text(store.detail(for: item))
                     .font(.caption)
@@ -99,6 +97,47 @@ private struct ShelfRow: View {
             Divider()
             Button("Remove") { store.remove(item) }
         }
+    }
+}
+
+private struct ShelfThumbnail: View {
+    let item: ShelfItem
+    // Observed so the row re-renders when the lazily generated preview lands.
+    @ObservedObject var store: ShelfStore
+
+    var body: some View {
+        Group {
+            if item.isFile {
+                if let thumbnail = store.preview(for: item) {
+                    Image(nsImage: thumbnail)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.quaternary, lineWidth: 1))
+                } else {
+                    Image(nsImage: store.icon(for: item))
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .padding(3)
+                }
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6).fill(.quaternary.opacity(0.5))
+                    if let favicon = store.preview(for: item) {
+                        Image(nsImage: favicon)
+                            .resizable()
+                            .interpolation(.high)
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 22, height: 22)
+                    } else {
+                        Image(nsImage: store.icon(for: item))
+                            .resizable()
+                            .frame(width: 26, height: 26)
+                    }
+                }
+            }
+        }
+        .frame(width: 44, height: 44)
     }
 }
 
