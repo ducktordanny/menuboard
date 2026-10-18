@@ -18,6 +18,7 @@ let package = Package(
                 .linkedFramework("ServiceManagement"),
                 .linkedFramework("Accelerate"),
                 .linkedFramework("QuickLookThumbnailing"),
+                .linkedFramework("Quartz"),
             ]
         )
     ]

@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import Quartz
 import SwiftUI
 
 @main
@@ -136,6 +137,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
         escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard event.keyCode == 53 else { return event }
+            // Let Quick Look consume Escape when its panel is up instead of closing the popover.
+            if QLPreviewPanel.sharedPreviewPanelExists(), QLPreviewPanel.shared().isVisible { return event }
             self?.closePopover(reason: "escape")
             return nil
         }

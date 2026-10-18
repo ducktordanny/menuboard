@@ -1,9 +1,11 @@
 import AppKit
+import QuickLook
 import SwiftUI
 import UniformTypeIdentifiers
 
 struct ShelfView: View {
     @ObservedObject var store: ShelfStore
+    @State private var previewURL: URL?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -17,7 +19,7 @@ struct ShelfView: View {
                 ScrollView {
                     LazyVStack(spacing: 2) {
                         ForEach(store.items) { item in
-                            ShelfRow(item: item, store: store)
+                            ShelfRow(item: item, store: store) { previewURL = store.previewURL(for: item) }
                         }
                     }
                     .padding(8)
@@ -41,6 +43,7 @@ struct ShelfView: View {
                 .padding(.vertical, 6)
             }
         }
+        .quickLookPreview($previewURL, in: store.items.map { store.previewURL(for: $0) })
         .overlay {
             if store.isDropTargeted {
                 RoundedRectangle(cornerRadius: 8)
@@ -56,6 +59,7 @@ struct ShelfView: View {
 private struct ShelfRow: View {
     let item: ShelfItem
     let store: ShelfStore
+    let onPreview: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -72,6 +76,11 @@ private struct ShelfRow: View {
             if item.isLoading {
                 ProgressView().controlSize(.small)
             }
+            Button(action: onPreview) {
+                Image(systemName: "eye").foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Quick Look")
             Button {
                 store.remove(item)
             } label: {
@@ -86,6 +95,7 @@ private struct ShelfRow: View {
         .draggable(item.url)
         .onTapGesture(count: 2) { store.open(item) }
         .contextMenu {
+            Button("Quick Look", action: onPreview)
             Button(item.isFile ? "Open" : "Open in Browser") { store.open(item) }
             if item.isFile {
                 Button("Show in Finder") { store.reveal(item) }

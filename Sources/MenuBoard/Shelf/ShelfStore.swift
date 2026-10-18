@@ -62,6 +62,7 @@ final class ShelfStore: ObservableObject {
     private var iconCache: [URL: NSImage] = [:]
     private var detailCache: [URL: String] = [:]
     private var previewCache: [URL: NSImage] = [:]
+    private var weblocCache: [URL: URL] = [:]
     private var pendingPreviews: Set<URL> = []
     private var failedPreviews: Set<URL> = []
     private let promiseQueue = OperationQueue()
@@ -216,6 +217,7 @@ final class ShelfStore: ObservableObject {
     func remove(_ item: ShelfItem) {
         items.removeAll { $0.id == item.id }
         deleteManagedFile(item)
+        if let webloc = weblocCache.removeValue(forKey: item.url) { try? FileManager.default.removeItem(at: webloc) }
         iconCache[item.url] = nil
         detailCache[item.url] = nil
         previewCache[item.url] = nil
@@ -226,6 +228,8 @@ final class ShelfStore: ObservableObject {
         let removed = items
         items.removeAll()
         removed.forEach(deleteManagedFile)
+        weblocCache.values.forEach { try? FileManager.default.removeItem(at: $0) }
+        weblocCache.removeAll()
         iconCache.removeAll()
         detailCache.removeAll()
         previewCache.removeAll()
@@ -302,6 +306,22 @@ final class ShelfStore: ObservableObject {
         } else {
             failedPreviews.insert(url)
         }
+    }
+
+    /// URL handed to Quick Look: the file itself, or a generated .webloc so links render as a web page.
+    func previewURL(for item: ShelfItem) -> URL {
+        guard !item.isFile else { return item.url }
+        if let cached = weblocCache[item.url] { return cached }
+        let directory = Self.storageDirectory.appendingPathComponent(".previews", isDirectory: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let safeTitle = item.title.replacingOccurrences(of: "/", with: "-").prefix(80)
+        let file = directory.appendingPathComponent("\(safeTitle.isEmpty ? "Link" : String(safeTitle)) \(item.id.uuidString.prefix(8)).webloc")
+        let plist: [String: Any] = ["URL": item.url.absoluteString]
+        if let data = try? PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0) {
+            try? data.write(to: file)
+        }
+        weblocCache[item.url] = file
+        return file
     }
 
     func detail(for item: ShelfItem) -> String {
