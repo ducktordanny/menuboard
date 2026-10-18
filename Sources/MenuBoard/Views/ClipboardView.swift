@@ -107,6 +107,13 @@ private struct ClipRow: View {
                     .foregroundStyle(.green)
                     .labelStyle(.titleAndIcon)
             }
+            Button {
+                store.remove(entry)
+            } label: {
+                Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
+            }
+            .buttonStyle(.plain)
+            .help("Remove from history")
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
