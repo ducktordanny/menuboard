@@ -28,6 +28,7 @@ struct RootView: View {
                     case .audio: AudioView(mixer: state.audio)
                     case .shelf: ShelfView(store: state.shelf)
                     case .clipboard: ClipboardView(store: state.clipboard)
+                    case .keyboard: KeyboardView(remapper: state.keys, hyper: state.hyper)
                     }
                 }
             }

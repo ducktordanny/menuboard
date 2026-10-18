@@ -13,6 +13,12 @@ A macOS menu bar utility (Swift, AppKit + SwiftUI, no dependencies).
 - **Clips** – clipboard history (text, files, images) with the source app, search, click-to-copy and a record toggle.
   Entries marked concealed/transient by password managers are never recorded. Up to 200 entries, stored in
   `~/Library/Application Support/MenuBoard/Clipboard/`.
+- **Keys** – simple system-wide key remaps (Caps Lock → Control, Caps Lock → Escape, swap ` and §, F-keys,
+  arrows…) applied through `hidutil`, the mechanism behind Karabiner's "simple modifications". No driver and no
+  Accessibility permission. Remaps persist until logout and are re-applied at launch.
+  A **hyper key** (hold one modifier for ⌃⌥⇧⌘, optionally Escape when tapped alone) is available too; it uses a
+  CGEvent tap and therefore needs the Accessibility permission. No layers or per-app rules; use Karabiner-Elements
+  for those.
 
 ## Shelf details
 
