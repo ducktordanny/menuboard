@@ -19,8 +19,12 @@ enum Tab: String, CaseIterable, Identifiable {
 
 final class AppState: ObservableObject {
     @Published var tab: Tab = .system {
-        didSet { if isVisible { activate(tab) } }
+        didSet {
+            showSettings = false
+            if isVisible { activate(tab) }
+        }
     }
+    @Published var showSettings = false
 
     let system = SystemStats()
     let processes = ProcessMemoryMonitor()

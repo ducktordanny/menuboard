@@ -55,6 +55,8 @@ final class ShelfStore: ObservableObject {
         didSet { persist() }
     }
     @Published var isDropTargeted = false
+    /// Called after a drop was accepted, from any drop target.
+    var onImport: (() -> Void)?
 
     private var iconCache: [URL: NSImage] = [:]
     private var detailCache: [URL: String] = [:]
@@ -88,6 +90,12 @@ final class ShelfStore: ObservableObject {
 
     @discardableResult
     func importDrop(_ info: NSDraggingInfo) -> Bool {
+        let accepted = acceptDrop(info)
+        if accepted { onImport?() }
+        return accepted
+    }
+
+    private func acceptDrop(_ info: NSDraggingInfo) -> Bool {
         let pasteboard = info.draggingPasteboard
         let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL] ?? []
 

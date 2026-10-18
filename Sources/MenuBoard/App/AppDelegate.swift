@@ -21,6 +21,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private let dragMonitor = DragMonitor()
     private var dropPanel: DropPanelController?
     private var outsideClickMonitor: Any?
+    private var escapeMonitor: Any?
+    private var resignActiveObserver: NSObjectProtocol?
     private var cancellables = Set<AnyCancellable>()
     private static let icon = NSImage(systemSymbolName: "gauge.with.dots.needle.50percent", accessibilityDescription: "MenuBoard")
 
@@ -58,11 +60,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         controller.preferredContentSize = RootView.size
 
         let popover = NSPopover()
-        popover.behavior = .transient
+        // Transient popovers also close when a menu opens inside them (footer gear, row context menus),
+        // so dismissal is handled manually: outside clicks, Escape, and app deactivation.
+        popover.behavior = .applicationDefined
         popover.delegate = self
         popover.contentSize = RootView.size
         popover.contentViewController = controller
         self.popover = popover
+
+        state.shelf.onImport = { [weak self] in self?.state.tab = .shelf }
 
         let dropPanel = DropPanelController(shelf: state.shelf)
         self.dropPanel = dropPanel
@@ -124,17 +130,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     func popoverWillShow(_ notification: Notification) {
         state.popoverDidShow()
-        // Transient popovers only auto-close while the app is active, which an accessory app often isn't.
         let mask: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
         outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] _ in
-            self?.popover?.performClose(nil)
+            self?.closePopover(reason: "outside click")
         }
+        escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard event.keyCode == 53 else { return event }
+            self?.closePopover(reason: "escape")
+            return nil
+        }
+        resignActiveObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.closePopover(reason: "resign active")
+        }
+    }
+
+    private func closePopover(reason: String) {
+        guard let popover, popover.isShown else { return }
+        // Clicks inside the popover must never dismiss it, whichever path reported them.
+        if reason != "escape", isMouseInsidePopover() {
+            NSLog("MenuBoard: ignored close (%@) with mouse inside popover", reason)
+            if !NSApp.isActive { NSApp.activate(ignoringOtherApps: true) }
+            return
+        }
+        NSLog("MenuBoard: closing popover (%@)", reason)
+        popover.performClose(nil)
+    }
+
+    private func isMouseInsidePopover() -> Bool {
+        guard let window = popover?.contentViewController?.view.window else { return false }
+        return window.frame.contains(NSEvent.mouseLocation)
     }
 
     func popoverDidClose(_ notification: Notification) {
         if let outsideClickMonitor {
             NSEvent.removeMonitor(outsideClickMonitor)
             self.outsideClickMonitor = nil
+        }
+        if let escapeMonitor {
+            NSEvent.removeMonitor(escapeMonitor)
+            self.escapeMonitor = nil
+        }
+        if let resignActiveObserver {
+            NotificationCenter.default.removeObserver(resignActiveObserver)
+            self.resignActiveObserver = nil
         }
         state.popoverDidClose()
         // Give focus back to whatever was in front; an active app with no windows is a dead end.

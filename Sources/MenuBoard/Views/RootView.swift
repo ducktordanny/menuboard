@@ -19,57 +19,39 @@ struct RootView: View {
             Divider()
 
             Group {
-                switch state.tab {
-                case .system: SystemView(stats: state.system)
-                case .memory: ProcessesView(monitor: state.processes)
-                case .audio: AudioView(mixer: state.audio)
-                case .shelf: ShelfView(store: state.shelf)
-                case .clipboard: ClipboardView(store: state.clipboard)
+                if state.showSettings {
+                    SettingsView(menuBar: state.menuBar)
+                } else {
+                    switch state.tab {
+                    case .system: SystemView(stats: state.system)
+                    case .memory: ProcessesView(monitor: state.processes)
+                    case .audio: AudioView(mixer: state.audio)
+                    case .shelf: ShelfView(store: state.shelf)
+                    case .clipboard: ClipboardView(store: state.clipboard)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Divider()
-            FooterView(menuBar: state.menuBar)
+
+            HStack {
+                Text(state.showSettings ? "Settings" : "MenuBoard")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button {
+                    state.showSettings.toggle()
+                } label: {
+                    Image(systemName: state.showSettings ? "xmark.circle.fill" : "gearshape")
+                        .foregroundStyle(state.showSettings ? Color.accentColor : Color.secondary)
+                }
+                .buttonStyle(.plain)
+                .help(state.showSettings ? "Close settings" : "Settings")
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
         }
         .frame(width: Self.size.width, height: Self.size.height)
-    }
-}
-
-private struct FooterView: View {
-    @ObservedObject var menuBar: MenuBarSettings
-    @State private var launchAtLogin = LaunchAtLogin.isEnabled
-
-    var body: some View {
-        HStack {
-            Text("MenuBoard")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Menu {
-                Section("Show in Menu Bar") {
-                    Toggle("Icon", isOn: $menuBar.showIcon)
-                    ForEach(MenuBarMetric.allCases) { metric in
-                        Toggle(metric.title, isOn: menuBar.binding(for: metric))
-                    }
-                }
-                Divider()
-                Toggle("Launch at Login", isOn: $launchAtLogin)
-                Divider()
-                Button("Quit MenuBoard") { NSApp.terminate(nil) }
-            } label: {
-                Image(systemName: "gearshape")
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .onChange(of: launchAtLogin) { _, enabled in
-            LaunchAtLogin.isEnabled = enabled
-            launchAtLogin = LaunchAtLogin.isEnabled
-        }
-        .onAppear { launchAtLogin = LaunchAtLogin.isEnabled }
     }
 }
