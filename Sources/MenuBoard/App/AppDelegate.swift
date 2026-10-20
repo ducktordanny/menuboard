@@ -84,7 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         dragMonitor.start()
 
         state.menuBar.objectWillChange
-            .merge(with: state.system.objectWillChange)
+            .merge(with: state.system.objectWillChange, state.keepAwake.objectWillChange)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.updateStatusItem() }
             .store(in: &cancellables)
@@ -95,7 +95,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         guard let button = statusItem?.button else { return }
         let settings = state.menuBar
         state.system.backgroundSampling = settings.hasMetrics
-        let title = settings.hasMetrics ? StatusItemRenderer.title(stats: state.system, settings: settings) : NSAttributedString()
+        let title = settings.hasMetrics || state.keepAwake.isActive
+            ? StatusItemRenderer.title(stats: state.system, settings: settings, keepAwake: state.keepAwake.isActive)
+            : NSAttributedString()
         let showIcon = settings.showIcon || title.length == 0
         button.attributedTitle = title
         button.image = showIcon ? Self.icon : nil
@@ -202,6 +204,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
         display.submenu = submenu
         menu.addItem(display)
+
+        let awake = NSMenuItem(title: state.keepAwake.isActive ? "Keep Awake (On)" : "Keep Awake", action: nil, keyEquivalent: "")
+        let awakeMenu = NSMenu()
+        for (index, option) in KeepAwake.durations.enumerated() {
+            let item = NSMenuItem(title: option.title, action: #selector(keepAwakeSelected(_:)), keyEquivalent: "")
+            item.target = self
+            item.tag = index
+            awakeMenu.addItem(item)
+        }
+        if state.keepAwake.isActive {
+            awakeMenu.addItem(.separator())
+            let off = NSMenuItem(title: "Turn Off", action: #selector(keepAwakeOff), keyEquivalent: "")
+            off.target = self
+            awakeMenu.addItem(off)
+        }
+        awake.submenu = awakeMenu
+        menu.addItem(awake)
         menu.addItem(.separator())
 
         let login = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
@@ -217,6 +236,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
+    }
+
+    @objc private func keepAwakeSelected(_ sender: NSMenuItem) {
+        guard KeepAwake.durations.indices.contains(sender.tag) else { return }
+        state.keepAwake.activate(for: KeepAwake.durations[sender.tag].seconds)
+    }
+
+    @objc private func keepAwakeOff() {
+        state.keepAwake.deactivate()
     }
 
     @objc private func toggleIcon() {

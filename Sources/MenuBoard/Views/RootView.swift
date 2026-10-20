@@ -42,6 +42,7 @@ struct RootView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
+                KeepAwakeControl(keepAwake: state.keepAwake)
                 Button {
                     state.showSettings.toggle()
                 } label: {
@@ -55,5 +56,38 @@ struct RootView: View {
             .padding(.vertical, 6)
         }
         .frame(width: Self.size.width, height: Self.size.height)
+    }
+}
+
+private struct KeepAwakeControl: View {
+    @ObservedObject var keepAwake: KeepAwake
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if let text = keepAwake.remainingText {
+                Text(text)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            Menu {
+                ForEach(KeepAwake.durations, id: \.title) { option in
+                    Button(option.title) { keepAwake.activate(for: option.seconds) }
+                }
+                if keepAwake.isActive {
+                    Divider()
+                    Button("Turn Off") { keepAwake.deactivate() }
+                }
+            } label: {
+                Image(systemName: keepAwake.isActive ? "cup.and.saucer.fill" : "cup.and.saucer")
+                    .foregroundStyle(keepAwake.isActive ? Color.accentColor : Color.secondary)
+            } primaryAction: {
+                keepAwake.toggle()
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help(keepAwake.isActive ? "Keep awake is on. Click to turn off." : "Keep the Mac awake. Click to toggle, hold for a duration.")
+        }
     }
 }

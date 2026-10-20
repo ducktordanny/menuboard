@@ -10,6 +10,8 @@ A macOS menu bar utility (Swift, AppKit + SwiftUI, no dependencies).
   out one by one or all at once.
 - **Menu bar readout** – optionally show CPU %, memory used, memory %, battery or free disk in the menu bar,
   next to or instead of the icon (gear menu or right-click the icon → Show in Menu Bar).
+- **Keep awake** – cup button in the footer (and the icon's right-click menu): click to prevent sleep
+  indefinitely, or pick 15 min / 30 min / 1 h / 2 h. A cup shows in the menu bar while active.
 - **Clips** – clipboard history (text, files, images) with the source app, search, click-to-copy and a record toggle.
   Entries marked concealed/transient by password managers are never recorded. Up to 200 entries, stored in
   `~/Library/Application Support/MenuBoard/Clipboard/`.

@@ -9,8 +9,15 @@ enum StatusItemRenderer {
         symbolSize.applying(NSImage.SymbolConfiguration(paletteColors: [tint]))
     }
 
-    static func title(stats: SystemStats, settings: MenuBarSettings) -> NSAttributedString {
+    static func title(stats: SystemStats, settings: MenuBarSettings, keepAwake: Bool) -> NSAttributedString {
         let result = NSMutableAttributedString()
+        if keepAwake, let image = NSImage(systemSymbolName: "cup.and.saucer.fill", accessibilityDescription: "Keep awake")?
+            .withSymbolConfiguration(symbolConfiguration(tint: .labelColor)) {
+            let attachment = NSTextAttachment()
+            attachment.image = image
+            attachment.bounds = CGRect(x: 0, y: (font.capHeight - image.size.height) / 2, width: image.size.width, height: image.size.height)
+            result.append(NSAttributedString(attachment: attachment))
+        }
         for metric in settings.orderedMetrics {
             guard let piece = piece(for: metric, stats: stats) else { continue }
             if result.length > 0 { result.append(text("  ")) }

@@ -53,6 +53,7 @@ final class AppState: ObservableObject {
     let keys = KeyRemapper()
     let hyper = HyperKey()
     let ports = PortMonitor()
+    let keepAwake = KeepAwake()
 
     private var isVisible = false
 
