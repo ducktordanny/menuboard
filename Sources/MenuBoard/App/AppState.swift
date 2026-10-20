@@ -39,8 +39,9 @@ final class AppState: ObservableObject {
         tabOrder = saved + Tab.allCases.filter { !saved.contains($0) }
     }
 
-    func moveTabs(from source: IndexSet, to destination: Int) {
-        tabOrder.move(fromOffsets: source, toOffset: destination)
+    func moveTab(_ tab: Tab, by offset: Int) {
+        guard let index = tabOrder.firstIndex(of: tab), tabOrder.indices.contains(index + offset) else { return }
+        tabOrder.swapAt(index, index + offset)
     }
 
     let system = SystemStats()

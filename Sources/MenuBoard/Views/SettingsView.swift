@@ -13,13 +13,15 @@ struct SettingsView: View {
                     HStack {
                         Toggle(metric.title, isOn: menuBar.binding(for: metric))
                         Spacer()
-                        Image(systemName: "line.3.horizontal")
-                            .foregroundStyle(.tertiary)
-                            .help("Drag to reorder")
+                        ReorderButtons(
+                            canMoveUp: menuBar.order.first != metric,
+                            canMoveDown: menuBar.order.last != metric,
+                            moveUp: { menuBar.move(metric, by: -1) },
+                            moveDown: { menuBar.move(metric, by: 1) }
+                        )
                     }
                 }
-                .onMove { source, destination in menuBar.move(from: source, to: destination) }
-                Text("Drag rows to change the order in the menu bar. Metrics are sampled every 2 seconds while enabled.")
+                Text("Order here is the order in the menu bar. Metrics are sampled every 2 seconds while enabled.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -29,12 +31,14 @@ struct SettingsView: View {
                     HStack {
                         Text(tab.title)
                         Spacer()
-                        Image(systemName: "line.3.horizontal")
-                            .foregroundStyle(.tertiary)
-                            .help("Drag to reorder")
+                        ReorderButtons(
+                            canMoveUp: state.tabOrder.first != tab,
+                            canMoveDown: state.tabOrder.last != tab,
+                            moveUp: { state.moveTab(tab, by: -1) },
+                            moveDown: { state.moveTab(tab, by: 1) }
+                        )
                     }
                 }
-                .onMove { source, destination in state.moveTabs(from: source, to: destination) }
             }
 
             Section("General") {
@@ -51,5 +55,26 @@ struct SettingsView: View {
             launchAtLogin = LaunchAtLogin.isEnabled
         }
         .onAppear { launchAtLogin = LaunchAtLogin.isEnabled }
+    }
+}
+
+
+private struct ReorderButtons: View {
+    let canMoveUp: Bool
+    let canMoveDown: Bool
+    let moveUp: () -> Void
+    let moveDown: () -> Void
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Button(action: moveUp) { Image(systemName: "chevron.up") }
+                .disabled(!canMoveUp)
+                .help("Move up")
+            Button(action: moveDown) { Image(systemName: "chevron.down") }
+                .disabled(!canMoveDown)
+                .help("Move down")
+        }
+        .buttonStyle(.borderless)
+        .controlSize(.small)
     }
 }

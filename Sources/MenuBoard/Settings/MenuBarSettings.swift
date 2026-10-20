@@ -48,8 +48,9 @@ final class MenuBarSettings: ObservableObject {
 
     var orderedMetrics: [MenuBarMetric] { order.filter(metrics.contains) }
 
-    func move(from source: IndexSet, to destination: Int) {
-        order.move(fromOffsets: source, toOffset: destination)
+    func move(_ metric: MenuBarMetric, by offset: Int) {
+        guard let index = order.firstIndex(of: metric), order.indices.contains(index + offset) else { return }
+        order.swapAt(index, index + offset)
     }
 
     func isEnabled(_ metric: MenuBarMetric) -> Bool { metrics.contains(metric) }
