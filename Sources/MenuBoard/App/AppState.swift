@@ -2,7 +2,7 @@ import Combine
 import Foundation
 
 enum Tab: String, CaseIterable, Identifiable {
-    case system, memory, audio, shelf, clipboard, keyboard
+    case system, memory, audio, shelf, clipboard, keyboard, ports
 
     var id: String { rawValue }
 
@@ -14,6 +14,7 @@ enum Tab: String, CaseIterable, Identifiable {
         case .shelf: "Shelf"
         case .clipboard: "Clips"
         case .keyboard: "Keys"
+        case .ports: "Ports"
         }
     }
 }
@@ -35,6 +36,7 @@ final class AppState: ObservableObject {
     let menuBar = MenuBarSettings()
     let keys = KeyRemapper()
     let hyper = HyperKey()
+    let ports = PortMonitor()
 
     private var isVisible = false
 
@@ -54,6 +56,7 @@ final class AppState: ObservableObject {
         case .system: system.start()
         case .memory: processes.start()
         case .audio: audio.start()
+        case .ports: ports.start()
         case .shelf, .clipboard, .keyboard: break
         }
     }
@@ -62,5 +65,6 @@ final class AppState: ObservableObject {
         system.stop()
         processes.stop()
         audio.stop()
+        ports.stop()
     }
 }

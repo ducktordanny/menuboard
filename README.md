@@ -28,6 +28,8 @@ A macOS menu bar utility (Swift, AppKit + SwiftUI, no dependencies).
 - **Links** are checked with a HEAD request: assets (image, video, PDF, zip…) are downloaded, pages stay as links.
 - The drop zone appears for drags that carry a URL, file, image or file promise; plain text drags are ignored.
   Detection relies on a global mouse monitor plus the drag pasteboard's change count (no Accessibility permission needed).
+- **Ports** – every TCP port your processes are listening on, with the owning process: open `localhost:<port>`
+  in the browser, copy, quit or force-kill. Read through libproc, so it refreshes in milliseconds.
 
 ## Permissions & privacy
 
@@ -92,6 +94,7 @@ Sources/MenuBoard/
   Shelf/      shelf model, drop import, drag detection, floating drop zone
   Clipboard/  clipboard history store
   Keyboard/   hidutil remaps, event-tap hyper key
+  Ports/      listening TCP sockets via libproc
   Settings/   menu bar readout settings
   Views/      SwiftUI tabs
 Resources/Info.plist

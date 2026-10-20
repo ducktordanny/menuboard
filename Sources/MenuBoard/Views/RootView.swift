@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RootView: View {
-    static let size = NSSize(width: 380, height: 500)
+    static let size = NSSize(width: 420, height: 500)
 
     @EnvironmentObject private var state: AppState
 
@@ -29,6 +29,7 @@ struct RootView: View {
                     case .shelf: ShelfView(store: state.shelf)
                     case .clipboard: ClipboardView(store: state.clipboard)
                     case .keyboard: KeyboardView(remapper: state.keys, hyper: state.hyper)
+                    case .ports: PortsView(monitor: state.ports)
                     }
                 }
             }
