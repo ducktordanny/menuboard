@@ -60,6 +60,7 @@ private struct ShelfRow: View {
     let item: ShelfItem
     let store: ShelfStore
     let onPreview: () -> Void
+    @State private var showsInlinePreview = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -76,11 +77,20 @@ private struct ShelfRow: View {
             if item.isLoading {
                 ProgressView().controlSize(.small)
             }
-            Button(action: onPreview) {
-                Image(systemName: "eye").foregroundStyle(.secondary)
+            Button {
+                showsInlinePreview.toggle()
+            } label: {
+                Image(systemName: showsInlinePreview ? "eye.fill" : "eye")
+                    .foregroundStyle(showsInlinePreview ? Color.accentColor : Color.secondary)
             }
             .buttonStyle(.plain)
-            .help("Quick Look")
+            .help("Preview")
+            .popover(isPresented: $showsInlinePreview, arrowEdge: .trailing) {
+                InlinePreview(title: item.title, url: store.previewURL(for: item)) {
+                    showsInlinePreview = false
+                    store.open(item)
+                }
+            }
             Button {
                 store.remove(item)
             } label: {
