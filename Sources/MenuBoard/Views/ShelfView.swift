@@ -36,6 +36,10 @@ struct ShelfView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
+                    ShareLink(items: store.urls) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+                    .controlSize(.small)
                     Button("Clear") { store.clear() }
                         .controlSize(.small)
                 }
@@ -77,6 +81,11 @@ private struct ShelfRow: View {
             if item.isLoading {
                 ProgressView().controlSize(.small)
             }
+            ShareLink(item: item.url) {
+                Image(systemName: "square.and.arrow.up").foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Share")
             Button {
                 showsInlinePreview.toggle()
             } label: {
@@ -107,6 +116,7 @@ private struct ShelfRow: View {
         .contextMenu {
             Button("Quick Look", action: onPreview)
             Button(item.isFile ? "Open" : "Open in Browser") { store.open(item) }
+            ShareLink(item: item.url) { Label("Share…", systemImage: "square.and.arrow.up") }
             if item.isFile {
                 Button("Show in Finder") { store.reveal(item) }
             }

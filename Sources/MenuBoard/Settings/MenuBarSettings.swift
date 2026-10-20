@@ -21,6 +21,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
 final class MenuBarSettings: ObservableObject {
     private static let iconKey = "menubar.showIcon"
     private static let metricsKey = "menubar.metrics"
+    private static let orderKey = "menubar.order"
 
     @Published var showIcon: Bool {
         didSet { UserDefaults.standard.set(showIcon, forKey: Self.iconKey) }
@@ -30,15 +31,26 @@ final class MenuBarSettings: ObservableObject {
         didSet { UserDefaults.standard.set(metrics.map(\.rawValue).sorted(), forKey: Self.metricsKey) }
     }
 
+    /// Display order of all metrics, enabled or not; the readout shows the enabled ones in this order.
+    @Published var order: [MenuBarMetric] {
+        didSet { UserDefaults.standard.set(order.map(\.rawValue), forKey: Self.orderKey) }
+    }
+
     init() {
         showIcon = UserDefaults.standard.object(forKey: Self.iconKey) as? Bool ?? true
         let saved = UserDefaults.standard.stringArray(forKey: Self.metricsKey) ?? []
         metrics = Set(saved.compactMap(MenuBarMetric.init(rawValue:)))
+        let savedOrder = (UserDefaults.standard.stringArray(forKey: Self.orderKey) ?? []).compactMap(MenuBarMetric.init(rawValue:))
+        order = savedOrder + MenuBarMetric.allCases.filter { !savedOrder.contains($0) }
     }
 
     var hasMetrics: Bool { !metrics.isEmpty }
 
-    var orderedMetrics: [MenuBarMetric] { MenuBarMetric.allCases.filter(metrics.contains) }
+    var orderedMetrics: [MenuBarMetric] { order.filter(metrics.contains) }
+
+    func move(from source: IndexSet, to destination: Int) {
+        order.move(fromOffsets: source, toOffset: destination)
+    }
 
     func isEnabled(_ metric: MenuBarMetric) -> Bool { metrics.contains(metric) }
 

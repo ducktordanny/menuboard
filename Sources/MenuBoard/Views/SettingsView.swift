@@ -8,10 +8,17 @@ struct SettingsView: View {
         Form {
             Section("Show in Menu Bar") {
                 Toggle("Icon", isOn: $menuBar.showIcon)
-                ForEach(MenuBarMetric.allCases) { metric in
-                    Toggle(metric.title, isOn: menuBar.binding(for: metric))
+                ForEach(menuBar.order) { metric in
+                    HStack {
+                        Toggle(metric.title, isOn: menuBar.binding(for: metric))
+                        Spacer()
+                        Image(systemName: "line.3.horizontal")
+                            .foregroundStyle(.tertiary)
+                            .help("Drag to reorder")
+                    }
                 }
-                Text("Metrics are sampled every 2 seconds while enabled.")
+                .onMove { source, destination in menuBar.move(from: source, to: destination) }
+                Text("Drag rows to change the order in the menu bar. Metrics are sampled every 2 seconds while enabled.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

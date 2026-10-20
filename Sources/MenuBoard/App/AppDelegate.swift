@@ -193,7 +193,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         iconItem.state = state.menuBar.showIcon ? .on : .off
         submenu.addItem(iconItem)
         submenu.addItem(.separator())
-        for metric in MenuBarMetric.allCases {
+        for metric in state.menuBar.order {
             let item = NSMenuItem(title: metric.title, action: #selector(toggleMetric(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = metric.rawValue
