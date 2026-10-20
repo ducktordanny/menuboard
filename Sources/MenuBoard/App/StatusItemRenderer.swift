@@ -3,8 +3,11 @@ import AppKit
 /// Builds the status item title: an SF Symbol plus value for each enabled metric.
 enum StatusItemRenderer {
     private static let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
-    private static let symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
-        .applying(NSImage.SymbolConfiguration(paletteColors: [.labelColor]))
+    private static let symbolSize = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
+
+    private static func symbolConfiguration(tint: NSColor) -> NSImage.SymbolConfiguration {
+        symbolSize.applying(NSImage.SymbolConfiguration(paletteColors: [tint]))
+    }
 
     static func title(stats: SystemStats, settings: MenuBarSettings) -> NSAttributedString {
         let result = NSMutableAttributedString()
@@ -12,7 +15,7 @@ enum StatusItemRenderer {
             guard let piece = piece(for: metric, stats: stats) else { continue }
             if result.length > 0 { result.append(text("  ")) }
             if let image = NSImage(systemSymbolName: piece.symbol, accessibilityDescription: metric.title)?
-                .withSymbolConfiguration(symbolConfiguration) {
+                .withSymbolConfiguration(symbolConfiguration(tint: piece.tint)) {
                 let attachment = NSTextAttachment()
                 attachment.image = image
                 let size = image.size
@@ -29,23 +32,35 @@ enum StatusItemRenderer {
         NSAttributedString(string: string, attributes: [.font: font])
     }
 
-    private static func piece(for metric: MenuBarMetric, stats: SystemStats) -> (symbol: String, value: String)? {
+    private struct Piece {
+        let symbol: String
+        let value: String
+        var tint: NSColor = .labelColor
+    }
+
+    private static func piece(for metric: MenuBarMetric, stats: SystemStats) -> Piece? {
         switch metric {
         case .cpu:
-            return ("cpu", Format.percent(stats.cpu.total))
+            return Piece(symbol: "cpu", value: Format.percent(stats.cpu.total))
         case .memory:
             guard let memory = stats.memory else { return nil }
-            return ("memorychip", String(format: "%.1f GB", Double(memory.used) / 1_073_741_824))
+            return Piece(symbol: "memorychip", value: String(format: "%.1f GB", Double(memory.used) / 1_073_741_824))
         case .memoryPercent:
             guard let memory = stats.memory else { return nil }
-            return ("memorychip", Format.percent(Double(memory.used) / Double(memory.total)))
+            return Piece(symbol: "memorychip", value: Format.percent(Double(memory.used) / Double(memory.total)))
         case .battery:
             guard let battery = stats.battery else { return nil }
-            return (batterySymbol(battery), "\(battery.percent)%")
+            return Piece(symbol: batterySymbol(battery), value: "\(battery.percent)%", tint: batteryTint(battery))
         case .disk:
             guard let disk = stats.disk else { return nil }
-            return ("internaldrive", String(format: "%.0f GB", Double(disk.free) / 1_000_000_000))
+            return Piece(symbol: "internaldrive", value: String(format: "%.0f GB", Double(disk.free) / 1_000_000_000))
         }
+    }
+
+    private static func batteryTint(_ battery: BatterySample) -> NSColor {
+        if battery.percent < 20 { return .systemRed }
+        guard battery.isCharging else { return .labelColor }
+        return battery.percent > 80 ? .systemGreen : .systemYellow
     }
 
     private static func batterySymbol(_ battery: BatterySample) -> String {
