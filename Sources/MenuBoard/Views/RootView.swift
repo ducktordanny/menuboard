@@ -8,7 +8,7 @@ struct RootView: View {
     var body: some View {
         VStack(spacing: 0) {
             Picker("Section", selection: $state.tab) {
-                ForEach(Tab.allCases) { tab in
+                ForEach(state.tabOrder) { tab in
                     Text(tab.title).tag(tab)
                 }
             }

@@ -28,6 +28,21 @@ final class AppState: ObservableObject {
     }
     @Published var showSettings = false
 
+    private static let tabOrderKey = "tabs.order"
+
+    @Published var tabOrder: [Tab] {
+        didSet { UserDefaults.standard.set(tabOrder.map(\.rawValue), forKey: Self.tabOrderKey) }
+    }
+
+    init() {
+        let saved = (UserDefaults.standard.stringArray(forKey: Self.tabOrderKey) ?? []).compactMap(Tab.init(rawValue:))
+        tabOrder = saved + Tab.allCases.filter { !saved.contains($0) }
+    }
+
+    func moveTabs(from source: IndexSet, to destination: Int) {
+        tabOrder.move(fromOffsets: source, toOffset: destination)
+    }
+
     let system = SystemStats()
     let processes = ProcessMemoryMonitor()
     let audio = AudioMixer()

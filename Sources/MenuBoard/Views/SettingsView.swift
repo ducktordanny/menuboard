@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var menuBar: MenuBarSettings
+    @EnvironmentObject private var state: AppState
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
 
     var body: some View {
@@ -21,6 +22,19 @@ struct SettingsView: View {
                 Text("Drag rows to change the order in the menu bar. Metrics are sampled every 2 seconds while enabled.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            Section("Tabs") {
+                ForEach(state.tabOrder) { tab in
+                    HStack {
+                        Text(tab.title)
+                        Spacer()
+                        Image(systemName: "line.3.horizontal")
+                            .foregroundStyle(.tertiary)
+                            .help("Drag to reorder")
+                    }
+                }
+                .onMove { source, destination in state.moveTabs(from: source, to: destination) }
             }
 
             Section("General") {
