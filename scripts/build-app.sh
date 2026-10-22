@@ -21,6 +21,10 @@ if [[ -z "$IDENTITY" ]]; then
   IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null \
     | awk -F'"' '/Developer ID Application|Apple Development/ { print $2; exit }')"
 fi
+# A self-signed cert is never "valid" (-v) since it isn't trusted, but it still gives a stable signature.
+if [[ -z "$IDENTITY" ]] && security find-identity -p codesigning 2>/dev/null | grep -q '"MenuBoard Dev"'; then
+  IDENTITY="MenuBoard Dev"
+fi
 IDENTITY="${IDENTITY:--}"
 
 codesign --force --sign "$IDENTITY" --identifier com.daniellazar.menuboard "$APP"
